@@ -1,0 +1,38 @@
+name: Deploy to AKS
+
+on:
+  workflow_run:
+    workflows: ["Build and Test"]
+    types:
+      - completed
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Install Azure CLI
+        run: |
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+      - name: Log in to Azure
+        run: |
+            az login --service-principal -u ${{ secrets.AZURE_CLIENT_ID }} -p ${{ secrets.AZURE_CLIENT_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+        
+
+      - name: Set AKS context
+        run: |
+          az aks get-credentials --resource-group <your-resource-group> --name <your-aks-cluster-name>
+
+      - name: Deploy Project1
+        run: |
+          kubectl apply -f k8s/Project1-deploy.yml
+          kubectl rollout status deployment/project1
+
+      - name: Deploy Project2
+        run: |
+          kubectl apply -f k8s/Project2-deploy.yml
+          kubectl rollout status deployment/project2

@@ -1,0 +1,52 @@
+name: Build and Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        project: [Project1, Project2]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore src/${{ matrix.project }}/${{ matrix.project }}/${{ matrix.project }}.csproj
+
+      - name: Build
+        run: dotnet build src/${{ matrix.project }}/${{ matrix.project }}/${{ matrix.project }}.csproj --configuration Release --no-restore
+
+      - name: Run tests
+        run: dotnet test src/${{ matrix.project }}/${{ matrix.project }}/${{ matrix.project }}.csproj --no-restore --verbosity normal
+
+      - name: Publish
+        run: dotnet publish src/${{ matrix.project }}/${{ matrix.project }}/${{ matrix.project }}.csproj --configuration Release --output ./artifacts/${{ matrix.project }}
+
+      - name: Install JFrog CLI
+        run: |
+          curl -fL https://getcli.jfrog.io | sh
+          sudo mv jfrog /usr/local/bin/
+      
+      - name: Configure JFrog CLI
+        run: |
+          jfrog config add my-artifactory \
+            --url=${{ secrets.JFROG_URL }} \
+            --user=${{ secrets.JFROG_USERNAME }} \
+            --password=${{ secrets.JFROG_PASSWORD }} \
+            --interactive=false
+      
+      - name: Upload artifacts to JFrog
+        run: jfrog rt u "./artifacts/${{ matrix.project }}/*" "my-repo/${{ matrix.project }}/"
