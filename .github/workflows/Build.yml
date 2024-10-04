@@ -42,6 +42,7 @@ jobs:
       
       - name: Configure JFrog CLI
         run: |
+          set -x
           jfrog config add my-artifactory \
             --url=${{ secrets.JFROG_URL }} \
             --user=${{ secrets.JFROG_USERNAME }} \
